@@ -7,44 +7,34 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 import streamlit as st
 
 # interact with FastAPI endpoint
-backend = "http://fastapi:8000/segmentation"
+backend = "http://85.143.174.110:8000/segmentation"
 
+image = st.file_uploader("insert image")  # image upload widget
+c1, c2= st.columns(2)
 
 def process(image, server_url: str):
 
-    m = MultipartEncoder(fields={"file": ("filename", image, "image/jpeg")})
+    m = MultipartEncoder(
+        fields={'file': ('filename', image, 'image/jpeg')}
+        )
 
-    r = requests.post(
-        server_url, data=m, headers={"Content-Type": m.content_type}, timeout=8000
-    )
+    r = requests.post(server_url,
+                      data=m,
+                      headers={'Content-Type': m.content_type},
+                      timeout=8000)
 
     return r
 
 
-# construct UI layout
-st.title("DeepLabV3 image segmentation")
+if st.button('Get segmentation map'):
 
-st.write(
-    """Obtain semantic segmentation maps of the image in input via DeepLabV3 implemented in PyTorch.
-         This streamlit example uses a FastAPI service as backend.
-         Visit this URL at `:8000/docs` for FastAPI documentation."""
-)  # description and instructions
-
-input_image = st.file_uploader("insert image")  # image upload widget
-
-if st.button("Get segmentation map"):
-
-    col1, col2 = st.columns(2)
-
-    if input_image:
-        segments = process(input_image, backend)
-        original_image = Image.open(input_image).convert("RGB")
-        segmented_image = Image.open(io.BytesIO(segments.content)).convert("RGB")
-        col1.header("Original")
-        col1.image(original_image, use_column_width=True)
-        col2.header("Segmented")
-        col2.image(segmented_image, use_column_width=True)
-
+    if image == None:
+        st.write("Insert an image!")  # handle case with no image
     else:
-        # handle case with no image
-        st.write("Insert an image!")
+        original_image = Image.open(image).convert("RGB")
+        c1.header("Original")
+        c1.image(original_image, use_column_width=True)
+        segments = process(image, backend)
+        c2.header('Output')
+        c2.subheader('Predicted class :')
+        c2.write(segments.content.decode())
